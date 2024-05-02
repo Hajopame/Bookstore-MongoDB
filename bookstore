@@ -1,0 +1,139 @@
+import pymongo
+
+# Establish a connection to our database
+client = pymongo.MongoClient("mongodb://localhost:27017")
+
+# Create or select a database
+mydb = client["bookstore"]
+
+# Create or select a collection
+mycol = mydb["books"]
+
+# Initialize a global variable for book count
+book_count = 0
+count = 0  # Global variable for search result count
+
+def display_menu():
+    
+    print("--- Hello and welcome to the awesome Lexicon bookstore! ---")
+    print("1. Add a book")
+    print("2. View all books")
+    print("3. Search a book by title")
+    print("4. Update a book price")
+    print("5. Delete a book")
+    print("6. View books by author")
+    print("7. View books in stock")
+    print("8. Exit")
+
+
+def add_book():
+    global book_count
+    title = input("Enter book title: ")
+    author = input("Enter book author: ")
+    price = float(input("Enter book price: "))
+    stock = int(input("Enter book stock: "))
+    
+    book = {"title": title, "author": author, "price": price, "stock": stock}
+    mycol.insert_one(book)
+    book_count += 1  # Increment book count after adding a new book
+    print("Book added successfully!")
+
+
+def view_all_books():
+    try:
+        print("Fetching all books from the database...")
+        books = mycol.find()
+        for book in books:
+            print(f"Title: {book['title']}, Author: {book['author']}, Price: {book['price']}, Stock: {book['stock']}")
+        print(f'Found {books.retrieved} books.')
+    except Exception as e:
+        print(f"Error fetching all books: {e}")
+
+
+def search_by_title():
+    try:
+        title = input("Enter the title of the book to search for: ")
+        query = {"title": {"$regex": title, "$options": "i"}}
+        results = mycol.find(query)
+
+        # Iterate over results to count books and print details
+        count = 0
+        for book in results:
+            count += 1
+            print(f"Title: {book['title']}, Author: {book['author']}, Price: {book['price']}, Stock: {book['stock']}")
+        
+        if count == 0:
+            print(f"No books found with the title '{title}'.")
+        else:
+            print(f"Found {count} book(s) with the title '{title}'.")
+    except Exception as e:
+        print(f"Error searching for books by title: {e}")
+def update_book_price():
+    title = input("Enter book title to update price: ")
+    new_price = float(input("Enter new price: "))
+    mycol.update_one({"title": title}, {"$set": {"price": new_price}})
+    print("Book price updated successfully!")
+
+
+def delete_book():
+    title = input("Enter book title to delete: ")
+    result = mycol.delete_one({"title": title})
+    if result.deleted_count > 0:
+        print(f"Book '{title}' deleted successfully!")
+    else:
+        print(f"No book found with the title '{title}'.")
+
+
+def view_books_by_author():
+    author = input("Enter author's name to view books: ")
+    query = {"author": {"$regex": author, "$options": "i"}}
+    results = mycol.find(query)
+
+    if results.count() == 0:
+        print(f"No books found by author '{author}'.")
+    else:
+        print(f"Books by author '{author}':")
+        for book in results:
+            print(f"Title: {book['title']}, Author: {book['author']}, Price: {book['price']}, Stock: {book['stock']}")
+
+
+def view_books_in_stock():
+    query = {"stock": {"$gt": 0}}  # Filter for books with stock greater than 0
+    results = mycol.find(query)
+
+    if results.count() == 0:
+        print("No books currently in stock.")
+    else:
+        print("Books currently in stock:")
+        for book in results:
+            print(f"Title: {book['title']}, Author: {book['author']}, Price: {book['price']}, Stock: {book['stock']}")
+
+
+def main():
+    while True:
+        display_menu()
+        choice = input("Enter your choice: ")
+
+        if choice == "1":
+            add_book()
+        elif choice == "2":
+            view_all_books()
+        elif choice == "3":
+            search_by_title()
+        elif choice == "4":
+            update_book_price()
+        elif choice == "5":
+            delete_book()
+        elif choice == "6":
+            view_books_by_author()
+        elif choice == "7":
+            view_books_in_stock()
+        elif choice == "8":
+            print("Thank you for using Lexicon bookstore. Hej då!")
+            break
+        else:
+            print("That's not an option. Please try again.")
+
+
+if __name__ == "__main__":
+    main()
